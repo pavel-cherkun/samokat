@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#7fc6ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Самокат. Последнее лето</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/three.module.js",
+  "three/addons/": "./vendor/three/addons/"
+} }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-l">
+    <div id="score">0</div>
+    <div id="mult">×1</div>
+  </div>
+  <div class="hud-c"><span id="speed">0</span><small>км/ч</small></div>
+  <div class="hud-r">
+    <div id="lives"></div>
+    <div id="best">рекорд 0</div>
+  </div>
+  <button id="pause" aria-label="Пауза">II</button>
+</div>
+<div id="pops"></div>
+<div id="grips"><div class="grip" id="gL"></div><div class="grip" id="gR"></div><svg id="gLine"><line x1="0" y1="0" x2="0" y2="0"/></svg></div>
+<div id="hint" class="hidden">
+  <div class="hint-zone l"><b></b><span>левый палец</span></div>
+  <div class="hint-txt">Возьмись за руль двумя пальцами<br><small>левый вверх, правый вниз — направо · отпусти — тормоз</small></div>
+  <div class="hint-zone r"><b></b><span>правый палец</span></div>
+</div>
+<div id="flash"></div>
+
+<!-- Меню -->
+<div id="menu">
+  <div class="title">
+    <h1>Самокат<span>последнее лето</span></h1>
+    <p>Зима близко. Прокатись, пока тепло</p>
+  </div>
+  <div id="cards"></div>
+  <div class="menu-bottom">
+    <button id="go">Поехали</button>
+    <div id="menuBest"></div>
+  </div>
+</div>
+
+<!-- Конец заезда -->
+<div id="over" class="hidden">
+  <div class="panel">
+    <h2 id="overTitle">Приехали</h2>
+    <div class="big" id="overScore">0</div>
+    <div id="overInfo"></div>
+    <div class="row">
+      <button id="again">Ещё круг</button>
+      <button id="toMenu" class="ghost">Другой самокат</button>
+    </div>
+  </div>
+</div>
+
+<div id="paused" class="hidden"><div class="panel"><h2>Пауза</h2><div class="row"><button id="resume">Дальше</button><button id="quit" class="ghost">В меню</button></div></div></div>
+
+<div id="rotate"><div class="phone"></div><p>Поверни телефон</p><small>играем горизонтально</small></div>
+<div id="loading"><div class="bar"><i></i></div><p>Накачиваем колёса…</p></div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

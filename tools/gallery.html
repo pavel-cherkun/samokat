@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><base href="../"><title>Галерея моделей</title>
+<style>html,body{margin:0;height:100%;background:#cfe9ff}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }</script>
+</head><body>
+<script type="module">
+// Отладка: все модели в ряд. Красная стрелка — «вперёд» игры (-z). ?b — здания.
+import * as THREE from 'three';
+import * as A from './src/assets.js';
+import * as M from './src/models.js';
+const Q = new URLSearchParams(location.search);
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); document.body.appendChild(r.domElement);
+r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping;
+const s = new THREE.Scene(); s.background = new THREE.Color('#cfe9ff');
+s.add(new THREE.HemisphereLight('#fff', '#a98', 1.5)); const d = new THREE.DirectionalLight('#fff', 2.5); d.position.set(-3, 5, 4); s.add(d);
+const cam = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 500);
+const keys = Q.has('b') ? ['white_shop','rural','commercial','diner','tienda','pharmacy','izakaya','khrush','spalny','post'] : ['tiggo8','mustang','hydrant','trash','box','aircon'];
+await A.loadAll();
+let x = 0;
+for (const k of keys) {
+  const m = Q.has('b') ? A.building(k, 12, 12) : A.model(k);
+  if (!m) continue;
+  const w = Q.has('b') ? 14 : 5;
+  m.position.x = x; s.add(m);
+  const ar = new THREE.ArrowHelper(new THREE.Vector3(0, 0, -1), new THREE.Vector3(x, 0.05, 0), 3, 0xff0000); s.add(ar);
+  x += w;
+}
+if (!Q.has('b')) { const sc = M.makeScooter(M.SCOOTERS[+(Q.get('sc') ?? 0)]); sc.group.position.x = x; s.add(sc.group); x += 3; }
+const az = +(Q.get('az') ?? 0.6);
+const dist = Q.has('b') ? 60 : 22;
+cam.position.set(x / 2 - 2 + Math.sin(az) * dist, Q.has('b') ? 18 : 7, Math.cos(az) * dist); cam.lookAt(x / 2 - 2, 1, 0);
+if (Q.has('top')) { cam.position.set(4, 14, 0.01); cam.lookAt(4, 0, 0); }
+r.render(s, cam);
+</script></body></html>

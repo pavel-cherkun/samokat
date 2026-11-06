@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "samokat", "url": "http://localhost:5190", "port": 5190 }
+  ]
+}
