@@ -57,7 +57,7 @@ export function genChunk(i, seed, difficulty) {
   const out = {
     i, s0, cross,
     buildings: [], trees: [], lamps: [], props: [], parked: [], cafes: [],
-    cones: [], manholes: [], puddles: [], pigeons: [], walkers: [], grannies: [], dogs: [], zebraWalkers: [],
+    cones: [], manholes: [], puddles: [], pigeons: [], walkers: [], grannies: [], dogs: [], zebraWalkers: [], cards: [],
   };
 
   // Где на тротуаре нельзя ставить мебель: зебра и поперечная улица
@@ -167,6 +167,17 @@ export function genChunk(i, seed, difficulty) {
   if (r() < 0.55) {
     const s = R(4, L - 4), x = R(-3, 10.5);
     if (free(x, s, 1.5)) { take(x, s, 1.5); out.pigeons.push({ x, s: s0 + s, n: 4 + Math.floor(r() * 6) }); }
+  }
+
+  // --- Карты-способности: чаще в велополосе, иногда там, куда надо рискнуть заехать. Первая — сразу после разгона.
+  if (!quiet && (i === 2 || r() < 0.4)) {
+    for (let k = 0; k < 4; k++) {
+      const s = R(6, L - 6), x = pick([ROAD.bike0 + 0.8, ROAD.bike0 + 0.8, ROAD.laneSame, ROAD.laneOpp, 9.4]);
+      if (!freeRoad(s) || !free(x, s, 0.9)) continue;
+      take(x, s, 0.9);
+      out.cards.push({ x, s: s0 + s, id: pick(['yellow', 'violet', 'orange']) });
+      break;
+    }
   }
 
   // --- Люди: гуляют по тротуарам, бабушки, собаки, переходят на зебре

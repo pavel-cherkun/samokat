@@ -156,9 +156,12 @@ export function makeHand(side) {
 
 export function makeForearm(skinMat, bandMat) {
   const g = new THREE.Group();
+  // от запястья к плечу за кадром: рука длинная, локоть и плечо уходят за нижний край экрана
   const arm = mesh(G.cap, skinMat, 0, 0, 0.5, 1, 1, 1);  // ось капсулы — y, повернём
-  arm.scale.set(0.038, 0.36, 0.034); arm.rotation.x = Math.PI / 2; arm.position.set(0, 0, 0.17);
+  arm.scale.set(0.04, 0.62, 0.036); arm.rotation.x = Math.PI / 2; arm.position.set(0, 0, 0.29);
   g.add(arm);
+  // рукав футболки у локтя
+  const sl = mesh(G.cyl, lam('#f4f1ea'), 0, 0, 0.66, 0.062, 0.36, 0.058); sl.rotation.x = Math.PI / 2; g.add(sl);
   const b = mesh(G.cyl, bandMat, 0, 0, 0.035, 0.044, 0.03, 0.041); b.rotation.x = Math.PI / 2; g.add(b);
   return g;
 }

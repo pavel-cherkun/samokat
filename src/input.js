@@ -15,6 +15,7 @@ export class Input {
     this.usingKeys = false;
     this.baseMid = null;
     this.gripL = null; this.gripR = null;
+    this.lostT = 0;               // сколько назад отпустили руль
     const opt = { passive: false };
     el.addEventListener('touchstart', e => this.onTouch(e), opt);
     el.addEventListener('touchmove', e => this.onTouch(e), opt);
@@ -27,7 +28,8 @@ export class Input {
   onTouch(e) {
     e.preventDefault();
     const seen = new Set();
-    for (const t of e.touches) {
+    // только касания по полю игры: палец на карте в HUD не считается рукой на руле
+    for (const t of e.targetTouches) {
       seen.add(t.identifier);
       const p = this.touches.get(t.identifier);
       if (p) { p.x = t.clientX; p.y = t.clientY; }
@@ -53,6 +55,7 @@ export class Input {
       this.throttle = this.brake > 0.2 ? 0 : 1;
       this.holding = true;
       this.gripL = l; this.gripR = r;
+      this.lostT = 0;
       return;
     }
     this.baseMid = null;
@@ -67,6 +70,9 @@ export class Input {
       this.holding = true;
       return;
     }
+    // палец на долю секунды ушёл с руля (нажать карту, перехватиться) — газ и руль держим
+    this.lostT += dt;
+    if (this.holding && this.lostT < 0.45 && list.length === 1) return;
     // руки отпущены: тормоз, руль сам возвращается
     this.steer *= Math.max(0, 1 - dt * 6);
     this.throttle = 0;

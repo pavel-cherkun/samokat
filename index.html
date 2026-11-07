@@ -30,7 +30,9 @@
     <div id="best">рекорд 0</div>
   </div>
   <button id="pause" aria-label="Пауза">II</button>
+  <div id="cardbar"></div>
 </div>
+<div id="aura"></div>
 <div id="pops"></div>
 <div id="grips"><div class="grip" id="gL"></div><div class="grip" id="gR"></div><svg id="gLine"><line x1="0" y1="0" x2="0" y2="0"/></svg></div>
 <div id="hint" class="hidden">
@@ -51,6 +53,29 @@
     <button id="go">Поехали</button>
     <div id="menuBest"></div>
   </div>
+  <button id="creditsBtn" class="ghost">кредиты</button>
+</div>
+
+<!-- Кредиты -->
+<div id="credits" class="hidden">
+  <div class="panel credits">
+    <h2>Кредиты</h2>
+    <div class="cr-body">
+      <h4>Игра</h4>
+      <p>Павел Черкун — идея, геймдизайн<br>Код, улица, самокаты, люди, собаки, голуби — сделаны кодом в проекте</p>
+      <h4>Машины · CC BY 4.0 · Sketchfab</h4>
+      <p>«2018 Ford Mustang GT Convertible» — adrianaflak09<br>«Chery Tiggo 8 Pro» — niev<br><small>упрощены, перекрашены, без логотипов</small></p>
+      <h4>Здания · CC BY · Sketchfab</h4>
+      <p>«Small Shop Asset» — HardSurface3D<br>«Russian Commercial Building PSX Style» — crime100<br>«Russian Residential Blocks (Spalny Rayon) PSX» — crime100<br>«dinner Ps1 style» — Wardster<br>«Mexican Store (Tienda 3B) — Low Poly PSX Asset» — Mezaiah la cabra<br>«Soviet Khrushchyovka — PS1 Style» — zufari4</p>
+      <h4>Уличные мелочи · CC0 · Poly Haven</h4>
+      <p>Fire Hydrant, Metal Trash Can, Utility Box 01, Exterior Aircon Unit</p>
+      <h4>Карты</h4>
+      <p>Рамки и значки карт — из игры «Курьер»</p>
+      <h4>Код</h4>
+      <p>three.js — MIT · meshoptimizer — MIT</p>
+    </div>
+    <button id="creditsClose">Понятно</button>
+  </div>
 </div>
 
 <!-- Конец заезда -->
@@ -69,8 +94,17 @@
 <div id="paused" class="hidden"><div class="panel"><h2>Пауза</h2><div class="row"><button id="resume">Дальше</button><button id="quit" class="ghost">В меню</button></div></div></div>
 
 <div id="rotate"><div class="phone"></div><p>Поверни телефон</p><small>играем горизонтально</small></div>
-<div id="loading"><div class="bar"><i></i></div><p>Накачиваем колёса…</p></div>
+<div id="loading"><div class="bar"><i></i></div><p>Накачиваем колёса…</p><button id="reload" class="hidden">Что-то застряло — перезапустить</button></div>
+<script>
+// Сторож загрузки: ошибка модуля или вечная загрузка не оставляют пустой экран — даём кнопку перезапуска
+(function () {
+  var show = function () { var b = document.getElementById('reload'); if (b && !window.__booted) b.classList.remove('hidden'); };
+  window.__bootWatch = setTimeout(show, 20000);
+  addEventListener('error', show); addEventListener('unhandledrejection', show);
+  document.getElementById('reload').onclick = function () { location.reload(); };
+})();
+</script>
 
-<script type="module" src="src/main.js"></script>
+<script type="module" src="src/main.js?v=2"></script>
 </body>
 </html>

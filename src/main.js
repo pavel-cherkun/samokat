@@ -5,6 +5,7 @@ import * as M from './models.js';
 import * as AU from './audio.js';
 import { World, SUN_DIR } from './world.js';
 import { Input } from './input.js';
+import * as CARDS from './cards.js';
 import { ROAD, CROSS, L, curbAt } from './layout.js';
 
 const Q = new URLSearchParams(location.search);
@@ -60,7 +61,7 @@ let state = 'loading';
 let choice = +(localStorage.getItem('samokat.choice') ?? 0) || 0;
 let best = +(localStorage.getItem('samokat.best') ?? 0) || 0;
 const p = { x: 4.2, s: 2, y: 0, h: 0, v: 0, steer: 0, lean: 0, onWalk: false, inPuddle: null, invuln: 0, wallT: 0 };
-const run = { score: 0, mult: 1, streak: 0, lives: 3, falls: 0, started: false, t: 0, crashT: 0, cause: '', nearMiss: [], dist0: 0, best0: 0 };
+const run = { cards: { yellow: 0, violet: 0, orange: 0 }, score: 0, mult: 1, streak: 0, lives: 3, falls: 0, started: false, t: 0, crashT: 0, cause: '', nearMiss: [], dist0: 0, best0: 0 };
 let shake = 0, shakeT = 0, flashA = 0;
 let vm = null, proxy = null, menuScooter = null, tumble = null;
 const time = { t: 0 };
@@ -159,6 +160,47 @@ const fx = {
   },
 };
 
+// ---------------------------------------------------------------- карты
+// жёлтая — мир медленнее, фиолетовая — рывок и очки ×2, оранжевая — удары отскакивают
+const cardBar = new CARDS.CardBar($('cardbar'), i => useCard(i));
+const active = id => run.cards[id] > 0;
+function useCard(i) {
+  const sl = cardBar.slots[i], d = sl.d;
+  if (state !== 'play' || !sl.have) return;
+  sl.have = false; sl.act = d.dur; run.cards[d.id] = d.dur;
+  pop(d.name, 'card', d.fx);
+  AU.sfx.levelUp(); flash(0.35, d.col); kick(0.15);
+  if (d.id === 'violet') { p.v = Math.max(p.v, scooterSpec().speed * 1.15); AU.sfx.whoosh(); }
+}
+function takeCard(a) {
+  a.taken = true;
+  const sl = cardBar.slots.find(x => x.d.id === a.id);
+  AU.sfx.coin();
+  if (sl.have) { addScore(50 * run.mult); pop('Ещё одна', 'good', '+' + 50 * run.mult); return; }
+  sl.have = true;
+  pop(sl.d.name, 'card', 'карта у тебя — жми, когда пригодится');
+  if (Q.has('auto')) useCard(cardBar.slots.indexOf(sl));
+}
+function tickCards(dt) {
+  for (const sl of cardBar.slots) {
+    if (sl.act > 0) { sl.act = Math.max(0, sl.act - dt); run.cards[sl.d.id] = sl.act; }
+  }
+  cardBar.sync();
+  // цветная рамка экрана, пока карта работает
+  const on = cardBar.slots.find(x => x.act > 0);
+  const au = $('aura');
+  au.style.opacity = on ? (0.55 + Math.sin(time.t * 8) * 0.15).toFixed(2) : 0;
+  if (on) au.style.setProperty('--c', on.d.col);
+}
+// оранжевая карта гасит удар: отскок вместо падения
+function shieldHit() {
+  const sl = cardBar.slots[2];
+  sl.act = 0; run.cards.orange = 0;
+  p.v *= 0.45; p.h *= -0.4; p.invuln = 1.2;
+  kick(0.6); flash(0.4, '#FF5A00'); AU.sfx.bump();
+  pop('Идут работы!', 'card', 'забор принял удар');
+}
+
 // ---------------------------------------------------------------- очки
 function addScore(n) { run.score += n; }
 function penalty(text, sub = '') {
@@ -180,6 +222,8 @@ function scooterSpec() { return M.SCOOTERS[choice]; }
 function newRun() {
   world.reset(Math.floor(Math.random() * 1e6));
   Object.assign(p, { x: 4.2, s: +(Q.get('s') ?? 2), y: 0, h: 0, v: 0, steer: 0, lean: 0, onWalk: false, inPuddle: null, invuln: 0 });
+  for (const sl of cardBar.slots) { sl.have = false; sl.act = 0; }
+  run.cards = { yellow: 0, violet: 0, orange: 0 };
   Object.assign(run, { score: 0, mult: 1, streak: 0, lives: 3, falls: 0, started: false, t: 0, crashT: 0, nearMiss: [], dist0: p.s, best0: best });
   world.update(p.s, 0);
   buildVM(scooterSpec());
@@ -272,10 +316,11 @@ function step(dt) {
   if (state === 'play') {
     if (!run.started && (input.holding || Q.has('auto'))) { run.started = true; $('hint').classList.add('hidden'); AU.sfx.bell(); }
     // --- газ/тормоз
-    const vmax = spec.speed * (1 + 0.12 * diff);
+    const boost = active('violet');
+    const vmax = spec.speed * (1 + 0.12 * diff) * (boost ? 1.45 : 1);
     const thr = run.started ? (Q.has('auto') ? 1 : input.throttle) : 0;
     const brk = run.started ? (Q.has('auto') ? 0 : input.brake) : 0;
-    if (thr > 0) p.v += spec.accel * thr * (1 - Math.pow(p.v / vmax, 2)) * dt;
+    if (thr > 0 || boost) p.v += (spec.accel + (boost ? 7 : 0)) * Math.max(thr, boost ? 1 : 0) * (1 - Math.pow(p.v / vmax, 2)) * dt;
     p.v -= (brk * 8 + 0.35) * dt;
     if (p.onWalk) p.v -= 0.2 * dt;
     p.v = Math.max(0, Math.min(vmax, p.v));
@@ -290,7 +335,7 @@ function step(dt) {
     const ox = p.x;
     p.s += p.v * Math.cos(p.h) * dt;
     p.x += p.v * Math.sin(p.h) * dt;
-    addScore(p.v * Math.cos(p.h) * dt * run.mult);
+    addScore(p.v * Math.cos(p.h) * dt * run.mult * (boost ? 2 : 1));
     // --- бордюр
     const inCrossRoad = !curbAt(p.s) && !(Math.abs(p.x) > ROAD.curb && atZebra(p.s));
     const wasWalk = Math.abs(ox) > ROAD.curb, isWalk = Math.abs(p.x) > ROAD.curb;
@@ -334,12 +379,14 @@ function step(dt) {
 
   // --- мир и актёры
   world.update(p.s, diff);
-  const ctx = { player: p, t: time.t, dt, difficulty: diff, started: run.started, fx };
-  world.traffic.update(dt, ctx);
+  const wdt = active('yellow') ? dt * 0.45 : dt;     // жёлтая: мир медленнее, игрок — нет
+  const ctx = { player: p, t: time.t, dt: wdt, difficulty: diff, started: run.started, fx };
+  world.traffic.update(wdt, ctx);
   for (const c of world.chunks.values()) {
     if (Math.abs(c.i * L + L / 2 - p.s) > 140) continue;
-    for (const a of c.actors) a.update(dt, ctx);
+    for (const a of c.actors) a.update(wdt, ctx);
   }
+  tickCards(dt);
 
   // --- звук
   AU.engine(p.v, spec.speed, state === 'play' ? input.throttle || (Q.has('auto') ? 1 : 0) : 0);
@@ -364,6 +411,10 @@ function autopilot() {
 function collide() {
   const px = p.x, pz = -p.s;
   for (const a of world.actors()) {
+    if (a.kind === 'card') {
+      if (!a.taken && state === 'play' && Math.abs(a.s - p.s) < 0.9 && Math.abs(a.x - px) < 0.95) takeCard(a);
+      continue;
+    }
     if (a.zone) {                       // лужа
       const z = a.zone, dx = px - z.x, dz = -pz - z.s;
       const c = Math.cos(z.rot), sn = Math.sin(z.rot);
@@ -390,11 +441,13 @@ function collide() {
         if (p.invuln > 0 || Q.has('god')) continue;
         if (a.kind === 'cone') {
           a.knock({ player: p }); AU.sfx.cone(); kick(0.25); burst(c.x, 0.3, c.z, '#ff7a1a', 8, 3, 0.05);
+          if (active('violet') || active('orange')) { addScore(5 * run.mult); pop('Снёс!', 'good', '+' + 5 * run.mult); break; }
           p.v *= 0.82; penalty('Конус!');
           break;
         }
         if (a.hard) {
           const kind = a.doorCol && a.doorCol.includes(c) ? 'door' : a.statics ? c.kind : a.kind === 'static' ? c.kind : a.kind;
+          if (active('orange')) { shieldHit(); return; }
           crash(kind);
           return;
         }
@@ -436,7 +489,7 @@ function updateCamera(dt) {
     camera.position.set(p.x - 6, 9, -p.s + 10);
     camera.lookAt(p.x, 0, -p.s - 14);
   }
-  const fov = (camera.aspect < 1.3 ? 72 : 58) + k * 7;
+  const fov = (camera.aspect < 1.3 ? 72 : 58) + Math.min(1.5, k) * 7 + (active('violet') ? 6 : 0);
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
 
   // вьюмодель
@@ -451,7 +504,7 @@ function updateCamera(dt) {
     for (let i = 0; i < 2; i++) {
       const side = i ? 1 : -1, h = vm.hands[i], arm = vm.arms[i];
       h.wrist.getWorldPosition(arm.position);
-      arm.lookAt(side * 0.34, 0.93, -0.1);
+      arm.lookAt(side * 0.4, 1.12, 0.75);   // к плечу позади-внизу камеры
     }
     vm.dispT -= dt;
     if (vm.dispT <= 0) {
@@ -594,21 +647,25 @@ $('go').addEventListener('click', async () => {
   } catch (e) { /* не дали — играем как есть */ }
   newRun();
 });
+$('creditsBtn').addEventListener('click', () => $('credits').classList.remove('hidden'));
+$('creditsClose').addEventListener('click', () => $('credits').classList.add('hidden'));
 $('again').addEventListener('click', newRun);
 $('toMenu').addEventListener('click', toMenu);
 $('pause').addEventListener('click', () => { if (state === 'play' || state === 'crash') { run.prev = state; state = 'paused'; $('paused').classList.remove('hidden'); AU.engine(0, 1, 0); } });
 $('resume').addEventListener('click', () => { state = run.prev || 'play'; $('paused').classList.add('hidden'); last = performance.now(); });
 $('quit').addEventListener('click', toMenu);
-addEventListener('keydown', e => { if (e.code === 'Escape') $('pause').click(); if (e.code === 'Enter' && state === 'menu') $('go').click(); });
+addEventListener('keydown', e => { const n = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code); if (n >= 0) useCard(n); if (e.code === 'Escape') $('pause').click(); if (e.code === 'Enter' && state === 'menu') $('go').click(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && !Q.has('nopause')) $('pause').click(); });
 
 // ---------------------------------------------------------------- старт
 (async () => {
+  await Promise.race([CARDS.loadFrames().then(() => cardBar.redraw()), new Promise(ok => setTimeout(ok, 5000))]);
   await A.loadAll(f => { $('loading').querySelector('i').style.width = (f * 100).toFixed(0) + '%'; });
   buildCards();
   toMenu();
+  window.__booted = true; clearTimeout(window.__bootWatch);
   $('loading').classList.add('hidden');
   if (Q.has('play') || Q.has('auto')) newRun();
-  window.game = { p, run, world, renderer, input, crash, newRun, scene, camera, get state() { return state; } };
+  window.game = { p, run, world, renderer, input, crash, newRun, scene, camera, cardBar, useCard, get state() { return state; } };
   nextFrame(frame);
 })();

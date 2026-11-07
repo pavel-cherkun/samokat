@@ -4,6 +4,7 @@ import * as TX from './textures.js';
 import * as M from './models.js';
 import * as A from './assets.js';
 import * as ACT from './actors.js';
+import { Pickup } from './cards.js';
 import { L, ROAD, CROSS, genChunk, rngFor } from './layout.js';
 
 const { part, merge, G } = M;
@@ -235,6 +236,7 @@ export class World {
     for (const w of d.walkers) actors.push(new ACT.Walker(group, w, 'stroll'));
     for (const g of d.grannies) actors.push(new ACT.Walker(group, { x: g.x, s: g.s, dir: Math.random() < 0.5 ? 1 : -1 }, g.jay ? 'jay' : 'stroll', true));
     for (const dg of d.dogs) actors.push(new ACT.Dog(group, dg));
+    for (const c of d.cards) actors.push(new Pickup(group, c));
     for (const z of d.zebraWalkers) actors.push(new ACT.Walker(group, z, 'zebra', z.granny));
     // статичные препятствия — тоже «актёр» без поведения
     actors.push({ kind: 'static', hard: true, colliders, update() {}, statics: true });
