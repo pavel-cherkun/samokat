@@ -61,7 +61,7 @@ let state = 'loading';
 let choice = +(localStorage.getItem('samokat.choice') ?? 0) || 0;
 let best = +(localStorage.getItem('samokat.best') ?? 0) || 0;
 const p = { x: 4.2, s: 2, y: 0, h: 0, v: 0, steer: 0, lean: 0, onWalk: false, inPuddle: null, invuln: 0, wallT: 0 };
-const run = { cards: { yellow: 0, violet: 0, orange: 0 }, score: 0, mult: 1, streak: 0, lives: 3, falls: 0, started: false, t: 0, crashT: 0, cause: '', nearMiss: [], dist0: 0, best0: 0 };
+const run = { turbo: 1, turboOn: false, cards: { yellow: 0, violet: 0, orange: 0 }, score: 0, mult: 1, streak: 0, lives: 3, falls: 0, started: false, t: 0, crashT: 0, cause: '', nearMiss: [], dist0: 0, best0: 0 };
 let shake = 0, shakeT = 0, flashA = 0;
 let vm = null, proxy = null, menuScooter = null, tumble = null;
 const time = { t: 0 };
@@ -140,13 +140,16 @@ function updateParts(dt) {
   }
 }
 
+// всплывашки идут стопкой и держатся ~2,4 с — успеваешь прочитать; больше трёх сразу не бывает
 function pop(text, cls = '', sub = '') {
+  const box = $('pops');
+  while (box.children.length >= 3) box.firstElementChild.remove();
   const el = document.createElement('div');
   el.className = 'pop ' + cls;
   el.innerHTML = text + (sub ? `<small>${sub}</small>` : '');
-  el.style.top = (26 + Math.random() * 12) + '%';
-  $('pops').appendChild(el);
-  setTimeout(() => el.remove(), 1150);
+  box.appendChild(el);
+  [...box.children].forEach((c, i, all) => { c.style.top = (44 - (all.length - 1 - i) * 17) + '%'; });
+  setTimeout(() => el.remove(), 2400);
 }
 function kick(a) { shake = Math.max(shake, a); }
 function flash(a, color = '#fff') { flashA = a; $('flash').style.background = color; }
@@ -178,10 +181,31 @@ function takeCard(a) {
   AU.sfx.coin();
   if (sl.have) { addScore(50 * run.mult); pop('Ещё одна', 'good', '+' + 50 * run.mult); return; }
   sl.have = true;
-  pop(sl.d.name, 'card', 'карта у тебя — жми, когда пригодится');
+  showToast(sl.d);
   if (Q.has('auto')) useCard(cardBar.slots.indexOf(sl));
 }
+// при подборе — крупная карта с описанием, чтобы было понятно, что она делает
+let toastT = 0;
+function showToast(d) {
+  const t = $('cardToast');
+  t.style.setProperty('--c', d.col);
+  t.querySelector('canvas').getContext('2d').drawImage(CARDS.cardCanvas(d.id), 0, 0);
+  t.querySelector('b').textContent = d.name + ' — ' + d.short;
+  t.querySelector('p').textContent = d.how;
+  t.classList.remove('hidden'); t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
+  toastT = 3.2;
+}
+function buildCardHelp() {
+  $('cardHelp').innerHTML = '';
+  for (const d of CARDS.DEFS) {
+    const row = document.createElement('div'); row.style.setProperty('--c', d.col);
+    row.appendChild(CARDS.cardCanvas(d.id));
+    const tx = document.createElement('span'); tx.innerHTML = `<b>${d.name} · ${d.short}</b><br>${d.how}`; row.appendChild(tx);
+    $('cardHelp').appendChild(row);
+  }
+}
 function tickCards(dt) {
+  if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('cardToast').classList.add('hidden'); }
   for (const sl of cardBar.slots) {
     if (sl.act > 0) { sl.act = Math.max(0, sl.act - dt); run.cards[sl.d.id] = sl.act; }
   }
@@ -223,7 +247,7 @@ function newRun() {
   world.reset(Math.floor(Math.random() * 1e6));
   Object.assign(p, { x: 4.2, s: +(Q.get('s') ?? 2), y: 0, h: 0, v: 0, steer: 0, lean: 0, onWalk: false, inPuddle: null, invuln: 0 });
   for (const sl of cardBar.slots) { sl.have = false; sl.act = 0; }
-  run.cards = { yellow: 0, violet: 0, orange: 0 };
+  run.cards = { yellow: 0, violet: 0, orange: 0 }; run.turbo = 1; run.turboOn = false;
   Object.assign(run, { score: 0, mult: 1, streak: 0, lives: 3, falls: 0, started: false, t: 0, crashT: 0, nearMiss: [], dist0: p.s, best0: best });
   world.update(p.s, 0);
   buildVM(scooterSpec());
@@ -317,10 +341,16 @@ function step(dt) {
     if (!run.started && (input.holding || Q.has('auto'))) { run.started = true; $('hint').classList.add('hidden'); AU.sfx.bell(); }
     // --- газ/тормоз
     const boost = active('violet');
-    const vmax = spec.speed * (1 + 0.12 * diff) * (boost ? 1.45 : 1);
+    // турбо: оба пальца от себя — быстрее разгон и выше потолок, пока есть заряд (≈2,5 с, копится ≈7 с)
+    const wantT = (Q.has('auto') ? 0 : input.turbo) > 0.1 && run.started && run.turbo > 0;
+    if (wantT && !run.turboOn) { AU.sfx.whoosh(); kick(0.08); }
+    run.turboOn = wantT;
+    run.turbo = wantT ? Math.max(0, run.turbo - dt / 2.5) : Math.min(1, run.turbo + dt / 7);
+    const tb = wantT ? input.turbo : 0;
+    const vmax = spec.speed * (1 + 0.12 * diff) * (boost ? 1.45 : 1) * (1 + 0.3 * tb);
     const thr = run.started ? (Q.has('auto') ? 1 : input.throttle) : 0;
     const brk = run.started ? (Q.has('auto') ? 0 : input.brake) : 0;
-    if (thr > 0 || boost) p.v += (spec.accel + (boost ? 7 : 0)) * Math.max(thr, boost ? 1 : 0) * (1 - Math.pow(p.v / vmax, 2)) * dt;
+    if (thr > 0 || boost || tb) p.v += (spec.accel * (1 + 1.6 * tb) + (boost ? 7 : 0)) * Math.max(thr, boost || tb ? 1 : 0) * (1 - Math.pow(p.v / vmax, 2)) * dt;
     p.v -= (brk * 8 + 0.35) * dt;
     if (p.onWalk) p.v -= 0.2 * dt;
     p.v = Math.max(0, Math.min(vmax, p.v));
@@ -489,7 +519,7 @@ function updateCamera(dt) {
     camera.position.set(p.x - 6, 9, -p.s + 10);
     camera.lookAt(p.x, 0, -p.s - 14);
   }
-  const fov = (camera.aspect < 1.3 ? 72 : 58) + Math.min(1.5, k) * 7 + (active('violet') ? 6 : 0);
+  const fov = (camera.aspect < 1.3 ? 72 : 58) + Math.min(1.5, k) * 7 + (active('violet') ? 6 : 0) + (run.turboOn ? 5 : 0);
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
 
   // вьюмодель
@@ -576,6 +606,9 @@ function updateHUD(dt) {
     $('mult').textContent = '×' + run.mult;
     $('speed').textContent = Math.round(p.v * 3.6);
     $('best').textContent = 'рекорд ' + Math.max(best, Math.round(run.score));
+    const tu = $('turbo');
+    tu.firstElementChild.style.transform = `scaleX(${run.turbo.toFixed(3)})`;
+    tu.classList.toggle('on', run.turboOn); tu.classList.toggle('empty', run.turbo < 0.05);
   }
   // кружки под пальцами и линия руля
   const gl = $('gL'), gr = $('gR'), line = $('gLine').firstElementChild;
@@ -662,6 +695,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && !Q.
   await Promise.race([CARDS.loadFrames().then(() => cardBar.redraw()), new Promise(ok => setTimeout(ok, 5000))]);
   await A.loadAll(f => { $('loading').querySelector('i').style.width = (f * 100).toFixed(0) + '%'; });
   buildCards();
+  buildCardHelp();
   toMenu();
   window.__booted = true; clearTimeout(window.__bootWatch);
   $('loading').classList.add('hidden');

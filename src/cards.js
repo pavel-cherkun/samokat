@@ -5,9 +5,9 @@
 import * as THREE from 'three';
 
 export const DEFS = [
-  { id: 'yellow', name: 'Правка карты', fx: 'Мы уже посчитали: 5 с мир вдвое медленнее, а ты — нет', col: '#FFE600', dur: 5, file: '03_yellow' },
-  { id: 'violet', name: 'Обменник', fx: 'Ваш заряд 100%! Рывок на 3 с, очки ×2', col: '#B23CF0', dur: 3, file: '05_violet' },
-  { id: 'orange', name: 'Идут работы', fx: 'Куда прёшь? 8 с всё отскакивает, как от забора', col: '#FF5A00', dur: 8, file: '06_orange' },
+  { id: 'yellow', name: 'Правка карты', short: 'замедление', how: 'Всё вокруг вдвое медленнее 5 с — машины, люди, двери. Ты едешь как обычно.', fx: 'Мы уже посчитали: 5 с мир вдвое медленнее, а ты — нет', col: '#FFE600', dur: 5, file: '03_yellow' },
+  { id: 'violet', name: 'Обменник', short: 'рывок', how: 'Рывок на 3 с: скорость до +45 %, очки ×2, конусы сносишь без штрафа.', fx: 'Ваш заряд 100%! Рывок на 3 с, очки ×2', col: '#B23CF0', dur: 3, file: '05_violet' },
+  { id: 'orange', name: 'Идут работы', short: 'щит', how: '8 с один удар не роняет: отскакиваешь, а не падаешь. Конусы без штрафа.', fx: 'Куда прёшь? 8 с всё отскакивает, как от забора', col: '#FF5A00', dur: 8, file: '06_orange' },
 ];
 export const byId = Object.fromEntries(DEFS.map(d => [d.id, d]));
 
@@ -113,6 +113,7 @@ export class CardBar {
       b.setAttribute('aria-label', d.name);
       const c = cardCanvas(d.id); b.appendChild(c);
       const bar = document.createElement('i'); b.appendChild(bar);
+      const lab = document.createElement('span'); lab.textContent = d.short; b.appendChild(lab);
       b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); onUse(i); });
       el.appendChild(b);
       return { d, b, bar, have: false, act: 0 };

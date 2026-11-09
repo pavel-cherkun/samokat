@@ -39,16 +39,17 @@ button.ghost { background: rgba(255,255,255,.85); color: var(--ink); }
 #pause { pointer-events: auto; position: absolute; right: max(12px, env(safe-area-inset-right)); top: 10px; width: 42px; height: 42px; padding: 0; font-size: 14px; background: rgba(255,255,255,.85); color: var(--ink); }
 
 #pops { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
-.pop { position: absolute; left: 50%; top: 34%; transform: translate(-50%, 0); font: 900 26px/1 var(--font); color: #fff; white-space: nowrap;
-  text-shadow: 0 3px 0 rgba(0,0,0,.28); animation: pop 1.1s ease-out forwards; }
+.pop { position: absolute; left: 50%; top: 34%; transform: translate(-50%, 0); font: 900 24px/1 var(--font); color: #fff; white-space: nowrap;
+  text-shadow: 0 2px 0 rgba(0,0,0,.35), 0 0 10px rgba(0,0,0,.35); animation: pop 2.4s ease-out forwards; transition: top .2s; }
 .pop.good { color: var(--sun); }
 .pop.bad { color: #ff7a5c; }
-.pop small { display: block; text-align: center; font-size: 15px; color: #fff; margin-top: 4px; }
+.pop small { display: block; text-align: center; font-size: 14px; color: #fff; margin-top: 4px; }
 @keyframes pop {
   0% { transform: translate(-50%, 10px) scale(.6); opacity: 0; }
-  15% { transform: translate(-50%, 0) scale(1.15); opacity: 1; }
-  30% { transform: translate(-50%, 0) scale(1); }
-  100% { transform: translate(-50%, -60px) scale(1); opacity: 0; }
+  7% { transform: translate(-50%, 0) scale(1.12); opacity: 1; }
+  14% { transform: translate(-50%, 0) scale(1); }
+  80% { transform: translate(-50%, -6px) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -24px) scale(1); opacity: 0; }
 }
 
 #grips { position: fixed; inset: 0; pointer-events: none; }
@@ -110,7 +111,7 @@ button.ghost { background: rgba(255,255,255,.85); color: var(--ink); }
 #loading .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .2s; }
 
 /* Карты */
-#cardbar { position: absolute; left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 8px; }
+#cardbar { position: absolute; left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 26px; }
 .cslot { pointer-events: auto; position: relative; width: 44px; height: 60px; padding: 0; border-radius: 6px; background: none; box-shadow: none;
   transition: opacity .2s, filter .2s, transform .15s; }
 .cslot canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
@@ -119,6 +120,26 @@ button.ghost { background: rgba(255,255,255,.85); color: var(--ink); }
 .cslot.have { opacity: 1; filter: drop-shadow(0 0 6px var(--c)) drop-shadow(0 0 2px #fff); animation: cardPulse 1s ease-in-out infinite; }
 .cslot.act { opacity: 1; filter: drop-shadow(0 0 12px var(--c)) brightness(1.15); transform: translateY(-6px) scale(1.08); }
 @keyframes cardPulse { 50% { transform: translateY(-4px) scale(1.06); } }
+.cslot span { position: absolute; left: 50%; top: 100%; margin-top: 3px; transform: translateX(-50%); font: 800 10px/1 var(--font); color: #fff; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.cslot.off span { opacity: .8; }
+#cardbar { bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px)) !important; }
+#cardToast { position: fixed; left: max(14px, env(safe-area-inset-left)); top: 84px; display: flex; gap: 12px; align-items: center; pointer-events: none;
+  background: rgba(20,18,30,.82); border: 2px solid var(--c, #fff); border-radius: 16px; padding: 10px 16px 10px 10px; color: #fff; max-width: min(330px, 40vw);
+  box-shadow: 0 0 24px var(--c, #fff); animation: toastIn .35s cubic-bezier(.2,1.6,.4,1); }
+#cardToast canvas { width: 61px; height: 83px; image-rendering: pixelated; flex: none; }
+#cardToast b { display: block; font: 900 18px/1.1 var(--font); color: var(--c); }
+#cardToast p { margin: 4px 0; font: 700 13px/1.3 var(--font); }
+#cardToast small { font: 600 11px var(--font); opacity: .7; }
+@keyframes toastIn { from { transform: translateX(-40px) scale(.8); opacity: 0; } }
+#cardHelp { margin: 10px 0 14px; display: grid; gap: 6px; text-align: left; max-width: 420px; }
+#cardHelp div { display: flex; gap: 10px; align-items: center; font: 600 12px/1.3 var(--font); }
+#cardHelp canvas { width: 30px; height: 41px; image-rendering: pixelated; flex: none; }
+#cardHelp b { color: var(--c); filter: brightness(.75); }
+#turbo { position: relative; margin: 5px auto 0; width: 86px; height: 6px; border-radius: 3px; background: rgba(0,0,0,.25); overflow: visible; }
+#turbo i { display: block; height: 100%; width: 100%; border-radius: 3px; background: #7dffb2; transform-origin: left; }
+#turbo span { position: absolute; left: 0; right: 0; top: 8px; font: 800 9px/1 var(--font); text-align: center; opacity: .85; }
+#turbo.on i { background: #ff5a36; box-shadow: 0 0 8px #ff5a36; }
+#turbo.empty span { opacity: .4; }
 #aura { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s; box-shadow: inset 0 0 60px 12px var(--c, #fff); }
 .pop.card { color: #fff; }
 .pop.card small { font-size: 13px; max-width: 70vw; white-space: normal; }

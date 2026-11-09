@@ -24,7 +24,7 @@
     <div id="score">0</div>
     <div id="mult">×1</div>
   </div>
-  <div class="hud-c"><span id="speed">0</span><small>км/ч</small></div>
+  <div class="hud-c"><span id="speed">0</span><small>км/ч</small><div id="turbo"><i></i><span>турбо ↑↑</span></div></div>
   <div class="hud-r">
     <div id="lives"></div>
     <div id="best">рекорд 0</div>
@@ -34,10 +34,11 @@
 </div>
 <div id="aura"></div>
 <div id="pops"></div>
+<div id="cardToast" class="hidden"><canvas width="122" height="166"></canvas><div><b></b><p></p><small>жми на карту внизу, когда пригодится</small></div></div>
 <div id="grips"><div class="grip" id="gL"></div><div class="grip" id="gR"></div><svg id="gLine"><line x1="0" y1="0" x2="0" y2="0"/></svg></div>
 <div id="hint" class="hidden">
   <div class="hint-zone l"><b></b><span>левый палец</span></div>
-  <div class="hint-txt">Возьмись за руль двумя пальцами<br><small>левый вверх, правый вниз — направо · отпусти — тормоз</small></div>
+  <div class="hint-txt">Возьмись за руль двумя пальцами<br><small>левый вверх, правый вниз — направо · оба вниз или отпусти — тормоз<br>оба вверх — турбо</small></div>
   <div class="hint-zone r"><b></b><span>правый палец</span></div>
 </div>
 <div id="flash"></div>
@@ -91,7 +92,7 @@
   </div>
 </div>
 
-<div id="paused" class="hidden"><div class="panel"><h2>Пауза</h2><div class="row"><button id="resume">Дальше</button><button id="quit" class="ghost">В меню</button></div></div></div>
+<div id="paused" class="hidden"><div class="panel"><h2>Пауза</h2><div id="cardHelp"></div><div class="row"><button id="resume">Дальше</button><button id="quit" class="ghost">В меню</button></div></div></div>
 
 <div id="rotate"><div class="phone"></div><p>Поверни телефон</p><small>играем горизонтально</small></div>
 <div id="loading"><div class="bar"><i></i></div><p>Накачиваем колёса…</p><button id="reload" class="hidden">Что-то застряло — перезапустить</button></div>

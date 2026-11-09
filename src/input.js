@@ -2,6 +2,7 @@
 //  • Поворот — наклон линии между пальцами: левый вверх + правый вниз = направо.
 //  • Газ — автоматически, пока держишь обе ручки.
 //  • Тормоз — отпусти руль или потяни обе ручки на себя (вниз), как тормозные рычаги.
+//  • Турбо — толкни обе ручки от себя (вверх), пока есть заряд.
 // Разность высот пальцев рулит, их общее смещение тормозит — оси не мешают друг другу.
 const MAX_ANGLE = 0.42;     // ~24°: полный поворот руля
 const DEAD = 0.05;
@@ -9,7 +10,7 @@ const DEAD = 0.05;
 export class Input {
   constructor(el) {
     this.touches = new Map();     // id → {x, y, x0, y0}
-    this.steer = 0; this.throttle = 0; this.brake = 0;
+    this.steer = 0; this.throttle = 0; this.brake = 0; this.turbo = 0;
     this.holding = false;         // обе руки на руле
     this.keys = {};
     this.usingKeys = false;
@@ -48,10 +49,12 @@ export class Input {
       this.steer = Math.max(-1, Math.min(1, s));
       const mid = (l.y + r.y) / 2;
       if (this.baseMid === null) this.baseMid = mid;
-      // если пальцы ушли вверх — база едет за ними, чтобы тормоз всегда был «потянуть на себя»
-      if (mid < this.baseMid) this.baseMid = mid;
+      // база — где взялся за руль. Вниз от неё — тормоз, вверх — турбо.
+      // Пальцы, ушедшие сильно вверх, тянут базу за собой: отпустил «от себя» — турбо выключилось
+      if (mid < this.baseMid - 110) this.baseMid = mid + 110;
       const pull = mid - this.baseMid;
       this.brake = Math.max(0, Math.min(1, (pull - 35) / 70));
+      this.turbo = Math.max(0, Math.min(1, (-pull - 40) / 50));
       this.throttle = this.brake > 0.2 ? 0 : 1;
       this.holding = true;
       this.gripL = l; this.gripR = r;
@@ -60,12 +63,14 @@ export class Input {
     }
     this.baseMid = null;
     this.gripL = list[0] || null; this.gripR = null;
+    if (!this.usingKeys) this.turbo = 0;
     if (this.usingKeys || list.length === 0 && Object.values(this.keys).some(Boolean)) {
       const k = this.keys;
       const target = (k.ArrowRight || k.KeyD ? 1 : 0) - (k.ArrowLeft || k.KeyA ? 1 : 0);
       // клавиши — плавный руль, как будто ведёшь пальцами
       this.steer += (target - this.steer) * Math.min(1, dt * 7);
       this.brake = k.ArrowDown || k.KeyS || k.Space ? 1 : 0;
+      this.turbo = k.ArrowUp || k.KeyW ? 1 : 0;
       this.throttle = this.brake ? 0 : 1;
       this.holding = true;
       return;
